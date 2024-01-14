@@ -1,0 +1,57 @@
+# Create Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: statefulset-pvc-namespace
+---
+# Create Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-app-service
+  namespace: statefulset-pvc-namespace
+spec:
+  selector:
+    app-name: nginx-app
+  ports:
+    - name: server
+      port: 2888
+      targetPort: 2888
+---
+# Create StatefulSet with 2 Replicas + PVC
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx-app-statefulset
+  namespace: statefulset-pvc-namespace
+spec:
+  selector:
+    matchLabels:
+      app-name: nginx-app
+  replicas: 2
+  serviceName: nginx-app-service
+  template:
+    metadata:
+      labels:
+        app-name: nginx-app
+    spec:
+      containers:
+        - name: app
+          image: nginx
+          ports:
+            - containerPort: 80
+              name: "http-server"
+          volumeMounts:
+            - mountPath: "/usr/share/nginx/html"
+              name: nginx-app-claim
+      restartPolicy: Always
+  volumeClaimTemplates:
+    - metadata:
+        name: nginx-app-claim
+        namespace: statefulset-pvc-namespace
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 500M

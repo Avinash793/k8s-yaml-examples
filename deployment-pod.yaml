@@ -1,0 +1,39 @@
+# Create Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: deployment-pod-namespace
+---
+# Create Deployment with 2 Replicas Pod
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-pod-app
+  namespace: deployment-pod-namespace
+spec:
+  selector:
+    matchLabels:
+      pod-type: deployment-pod
+      app-name: deploy
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        pod-type: deployment-pod
+        app-name: deploy
+    spec:
+      containers:
+        - name: app
+          image: alpine
+          command: ["sleep", "3600"]
+          resources:
+            limits:
+              memory: "100Mi"
+              cpu: "100m"
+            requests:
+              memory: "50Mi"
+              cpu: "50m"
+          ports:
+            - containerPort: 8080
+          imagePullPolicy: IfNotPresent
+      restartPolicy: Always

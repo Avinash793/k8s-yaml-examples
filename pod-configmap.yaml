@@ -1,0 +1,79 @@
+# Create Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pod-configmap-namespace
+---
+# Create Game Object ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: game-objects-configmap
+  namespace: pod-configmap-namespace
+data:
+  # property-like keys; each key map to a single value
+  player_initial_lives: "7"
+  # file-like keys
+  game.properties: |
+    enemy.types=aliens,monsters
+    player.maximum-lives=5
+immutable: true
+---
+# Create Game UI ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: game-ui-configmap
+  namespace: pod-configmap-namespace
+data:
+  # property-like keys; each key map to a single value
+  ui_properties_file_name: "user-interface.properties"
+  # file-like keys
+  user-interface.properties: |
+    color.good=purple
+    color.bad=yellow
+    allow.textmode=true
+immutable: false
+---
+# Create Game App Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: game-app-pod
+  namespace: pod-configmap-namespace
+  labels:
+    name: my-game-app
+spec:
+  containers:
+    - name: app
+      image: alpine
+      command: ["sleep", "3600"]
+      # Mount game ui configmap as env or envFrom
+      # Use "env" when you want to mount few keys only as env from configmap
+      env:
+        - name: UI_PROPERTIES_FILE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: game-ui-configmap          # ConfigMap name
+              key: ui_properties_file_name     # key name from configmap to fetch value from
+      # Use "envFrom" when you want to mount whole configmap as Env
+      envFrom:
+        - configMapRef:
+            name: game-ui-configmap
+      # Mount game objects configmap as volume
+      volumeMounts:
+        - name: game-app-volume
+          mountPath: "/config"
+          readOnly: true
+  volumes:
+    # You create volumes at the Pod level then mount them into containers inside that Pod
+    - name: game-app-volume
+      configMap:
+        # Provide the name of the ConfigMap you want to mount
+        name: game-objects-configmap
+        # An array of keys from the ConfigMap to create as files
+        items:
+          - key: "player_initial_lives"
+            path: "player_initial_lives_data" # file will be created in /config folder having only player_initial_lives data in it
+          - key: "game.properties"
+            path: "game_properties_data"      # file will be created in /config folder having only game.properties data in it

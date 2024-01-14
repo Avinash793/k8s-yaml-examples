@@ -1,0 +1,56 @@
+# Create Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pod-pvc-namespace
+---
+# Create PV
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: app-storage
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"
+---
+# Create PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-app-claim
+  namespace: pod-pvc-namespace
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500M
+---
+# Create Nginx App Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-app
+  namespace: pod-pvc-namespace
+spec:
+  containers:
+    - name: app
+      image: nginx
+      ports:
+        - containerPort: 80
+          name: "http-server"
+      volumeMounts:
+        - mountPath: "/usr/share/nginx/html"
+          name: nginx-app-volume
+  volumes:
+    - name: nginx-app-volume
+      persistentVolumeClaim:
+        claimName: nginx-app-claim

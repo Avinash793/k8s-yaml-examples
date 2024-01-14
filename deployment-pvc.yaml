@@ -1,0 +1,82 @@
+# Create Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: deployment-pvc-namespace
+---
+# Create PV
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: deploy-app-storage
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"
+---
+# Create PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-app-claim
+  namespace: deployment-pvc-namespace
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500M
+---
+# Create Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-app-service
+  namespace: deployment-pvc-namespace
+spec:
+  selector:
+    app-name: nginx-app
+  ports:
+    - name: server
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+---
+# Create Deployment with 2 Replicas Pod having PVC
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-app-deployment
+  namespace: deployment-pvc-namespace
+  labels:
+    app-name: nginx-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app-name: nginx-app
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app-name: nginx-app
+    spec:
+      containers:
+        - name: app
+          image: nginx
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: nginx-app-volume
+              mountPath: "/usr/share/nginx/html"
+      volumes:
+        - name: nginx-app-volume
+          persistentVolumeClaim:
+            claimName: nginx-app-claim

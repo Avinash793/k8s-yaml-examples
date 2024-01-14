@@ -1,0 +1,88 @@
+# Create Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pod-readiness-liveness-namespace
+---
+# Create Command based Liveness and Readiness Probes Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-readiness-exec-pod
+  namespace: pod-readiness-liveness-namespace
+spec:
+  containers:
+    - name: app
+      image: registry.k8s.io/busybox
+      args:
+        - /bin/sh
+        - -c
+        - touch /tmp/healthy; sleep 30; rm -f /tmp/healthy; sleep 600
+      livenessProbe:
+        exec:
+          command:
+            - cat
+            - /tmp/healthy
+        initialDelaySeconds: 5
+        periodSeconds: 5
+      readinessProbe:
+        exec:
+          command:
+            - cat
+            - /tmp/healthy
+        initialDelaySeconds: 5
+        periodSeconds: 5
+---
+# Create HTTP Request based Liveness and Readiness Probes Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-readiness-http-pod
+  namespace: pod-readiness-liveness-namespace
+spec:
+  containers:
+    - name: app
+      image: registry.k8s.io/liveness
+      args:
+        - /server
+      livenessProbe:
+        httpGet:
+          path: /healthz
+          port: 8080
+          httpHeaders:
+            - name: Custom-Header
+              value: Awesome
+        initialDelaySeconds: 3
+        periodSeconds: 3
+      readinessProbe:
+        httpGet:
+          path: /healthz
+          port: 8080
+          httpHeaders:
+            - name: Custom-Header
+              value: Awesome
+        initialDelaySeconds: 3
+        periodSeconds: 3
+---
+# Create TCP based Liveness and Readiness Probes Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-readiness-tcp-pod
+  namespace: pod-readiness-liveness-namespace
+spec:
+  containers:
+    - name: app
+      image: registry.k8s.io/goproxy:0.1
+      ports:
+        - containerPort: 8080
+      readinessProbe:
+        tcpSocket:
+          port: 8080
+        initialDelaySeconds: 15
+        periodSeconds: 10
+      livenessProbe:
+        tcpSocket:
+          port: 8080
+        initialDelaySeconds: 15
+        periodSeconds: 10

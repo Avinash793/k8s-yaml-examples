@@ -1,0 +1,23 @@
+# Create Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pod-oom-killed-namespace
+---
+# Create OOM Killed Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: oom-killed-pod
+  namespace: pod-oom-killed-namespace
+spec:
+  containers:
+    - name: app
+      image: polinux/stress
+      resources:
+        requests:
+          memory: "10Mi"
+        limits:
+          memory: "20Mi"
+      command: ["stress"]
+      args: ["--vm", "1", "--vm-bytes", "250M", "--vm-hang", "1"]
